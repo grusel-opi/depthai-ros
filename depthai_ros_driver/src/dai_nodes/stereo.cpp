@@ -79,6 +79,7 @@ void Stereo::setNames() {
     stereoQName = getName() + "_stereo";
     leftRectQName = getName() + "_left_rect";
     rightRectQName = getName() + "_right_rect";
+    confQName = getName() + "_confidence";
 }
 
 void Stereo::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
@@ -97,6 +98,7 @@ void Stereo::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
             }
         }
     }
+
     if(ph->getParam<bool>("i_publish_left_rect") || ph->getParam<bool>("i_publish_synced_rect_pair")) {
         xoutLeftRect = pipeline->create<dai::node::XLinkOut>();
         xoutLeftRect->setStreamName(leftRectQName);
@@ -123,13 +125,18 @@ void Stereo::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
 
     if(ph->getParam<bool>("i_left_rect_enable_feature_tracker")) {
         featureTrackerLeftR = std::make_unique<FeatureTracker>(leftSensInfo.name + std::string("_rect_feature_tracker"), getROSNode(), pipeline);
-
         stereoCamNode->rectifiedLeft.link(featureTrackerLeftR->getInput());
     }
 
     if(ph->getParam<bool>("i_right_rect_enable_feature_tracker")) {
         featureTrackerRightR = std::make_unique<FeatureTracker>(rightSensInfo.name + std::string("_rect_feature_tracker"), getROSNode(), pipeline);
         stereoCamNode->rectifiedRight.link(featureTrackerRightR->getInput());
+    }
+
+    if(ph->getParam<bool>("i_publish_confidence")) {
+        xoutConf = pipeline->create<dai::node::XLinkOut>();
+        xoutConf->setStreamName(confQName);
+        stereo->confidenceMap.link(xoutConf->input);
     }
 }
 
@@ -199,8 +206,13 @@ void Stereo::setupRectQueue(std::shared_ptr<dai::Device> device,
     } else {
         pubIT = image_transport::create_camera_publisher(getROSNode(), "~/" + sensorName + "/image_rect");
         if(addCallback) {
-            q->addCallback(std::bind(
-                sensor_helpers::cameraPub, std::placeholders::_1, std::placeholders::_2, *conv, pubIT, im, ph->getParam<bool>("i_enable_lazy_publisher")));
+            q->addCallback(std::bind(sensor_helpers::cameraPub,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     *conv,
+                                     pubIT,
+                                     im,
+                                     ph->getParam<bool>("i_enable_lazy_publisher")));
         }
     }
 }
@@ -265,6 +277,7 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
 
     stereoIM->setCameraInfo(info);
     stereoQ = device->getOutputQueue(stereoQName, ph->getParam<int>("i_max_q_size"), false);
+    confQ = device->getOutputQueue(confQName, ph->getParam<int>("i_max_q_size"), false);
     if(ipcEnabled()) {
         stereoPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/image_raw", 10);
         stereoInfoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
@@ -276,6 +289,15 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
                                        stereoInfoPub,
                                        stereoIM,
                                        ph->getParam<bool>("i_enable_lazy_publisher")));
+        confPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/confidence", 10);
+        confQ->addCallback(std::bind(sensor_helpers::splitPub,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     *stereoConv,
+                                     confPub,
+                                     stereoInfoPub,
+                                     stereoIM,
+                                     ph->getParam<bool>("i_enable_lazy_publisher")));
     } else {
         stereoPubIT = image_transport::create_camera_publisher(getROSNode(), "~/" + getName() + "/image_raw");
         stereoQ->addCallback(std::bind(sensor_helpers::cameraPub,
@@ -285,6 +307,14 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
                                        stereoPubIT,
                                        stereoIM,
                                        ph->getParam<bool>("i_enable_lazy_publisher")));
+        confPubIT = image_transport::create_camera_publisher(getROSNode(), "~/" + getName() + "/confidence");
+        confQ->addCallback(std::bind(sensor_helpers::splitPub,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     *stereoConv,
+                                     confPubIT,
+                                     stereoIM,
+                                     ph->getParam<bool>("i_enable_lazy_publisher")));
     }
 }
 

@@ -85,8 +85,8 @@ class Stereo : public BaseNode {
      */
     void syncTimerCB();
     std::unique_ptr<dai::ros::ImageConverter> stereoConv, leftRectConv, rightRectConv;
-    image_transport::CameraPublisher stereoPubIT, leftRectPubIT, rightRectPubIT;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr stereoPub, leftRectPub, rightRectPub;
+    image_transport::CameraPublisher stereoPubIT, leftRectPubIT, rightRectPubIT, confPubIT;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr stereoPub, leftRectPub, rightRectPub, confPub;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr stereoInfoPub, leftRectInfoPub, rightRectInfoPub;
     std::shared_ptr<camera_info_manager::CameraInfoManager> stereoIM, leftRectIM, rightRectIM;
     std::shared_ptr<dai::node::StereoDepth> stereoCamNode;
@@ -95,9 +95,9 @@ class Stereo : public BaseNode {
     std::unique_ptr<SensorWrapper> right;
     std::unique_ptr<BaseNode> featureTrackerLeftR, featureTrackerRightR, nnNode;
     std::unique_ptr<param_handlers::StereoParamHandler> ph;
-    std::shared_ptr<dai::DataOutputQueue> stereoQ, leftRectQ, rightRectQ;
-    std::shared_ptr<dai::node::XLinkOut> xoutStereo, xoutLeftRect, xoutRightRect;
-    std::string stereoQName, leftRectQName, rightRectQName;
+    std::shared_ptr<dai::DataOutputQueue> stereoQ, leftRectQ, rightRectQ, confQ;
+    std::shared_ptr<dai::node::XLinkOut> xoutStereo, xoutLeftRect, xoutRightRect, xoutConf;
+    std::string stereoQName, leftRectQName, rightRectQName, confQName;
     dai::CameraFeatures leftSensInfo, rightSensInfo;
     rclcpp::TimerBase::SharedPtr syncTimer;
 };
