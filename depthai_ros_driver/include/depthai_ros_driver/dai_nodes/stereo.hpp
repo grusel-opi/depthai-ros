@@ -66,6 +66,7 @@ class Stereo : public BaseNode {
 
    private:
     void setupStereoQueue(std::shared_ptr<dai::Device> device);
+    void setupConfQueue(std::shared_ptr<dai::Device> device);
     void setupLeftRectQueue(std::shared_ptr<dai::Device> device);
     void setupRightRectQueue(std::shared_ptr<dai::Device> device);
     void setupRectQueue(std::shared_ptr<dai::Device> device,

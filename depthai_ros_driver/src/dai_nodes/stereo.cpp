@@ -225,6 +225,34 @@ void Stereo::setupRightRectQueue(std::shared_ptr<dai::Device> device) {
     setupRectQueue(device, rightSensInfo, rightRectQName, rightRectConv, rightRectIM, rightRectQ, rightRectPub, rightRectInfoPub, rightRectPubIT, false);
 }
 
+void Stereo::setupConfQueue(std::shared_ptr<dai::Device> device) {
+    stereoConv = std::make_unique<dai::ros::ImageConverter>(tfPrefix + "_camera_optical_frame", false, ph->getParam<bool>("i_get_base_device_timestamp"));
+    stereoConv->setUpdateRosBaseTimeOnToRosMsg(ph->getParam<bool>("i_update_ros_base_time_on_ros_msg"));
+
+    confQ = device->getOutputQueue(confQName, ph->getParam<int>("i_max_q_size"), false);
+
+    if(ipcEnabled()) {
+        confPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/confidence", 10);
+        confQ->addCallback(std::bind(sensor_helpers::splitPub,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     *stereoConv,
+                                     confPub,
+                                     stereoInfoPub,
+                                     stereoIM,
+                                     ph->getParam<bool>("i_enable_lazy_publisher")));
+    } else {
+        confPubIT = image_transport::create_camera_publisher(getROSNode(), "~/" + getName() + "/confidence");
+        confQ->addCallback(std::bind(sensor_helpers::cameraPub,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     *stereoConv,
+                                     confPubIT,
+                                     stereoIM,
+                                     ph->getParam<bool>("i_enable_lazy_publisher")));
+    }
+}
+
 void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
     std::string tfPrefix;
     if(ph->getParam<bool>("i_align_depth")) {
@@ -277,7 +305,6 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
 
     stereoIM->setCameraInfo(info);
     stereoQ = device->getOutputQueue(stereoQName, ph->getParam<int>("i_max_q_size"), false);
-    confQ = device->getOutputQueue(confQName, ph->getParam<int>("i_max_q_size"), false);
     if(ipcEnabled()) {
         stereoPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/image_raw", 10);
         stereoInfoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
@@ -289,15 +316,6 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
                                        stereoInfoPub,
                                        stereoIM,
                                        ph->getParam<bool>("i_enable_lazy_publisher")));
-        confPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/confidence", 10);
-        confQ->addCallback(std::bind(sensor_helpers::splitPub,
-                                     std::placeholders::_1,
-                                     std::placeholders::_2,
-                                     *stereoConv,
-                                     confPub,
-                                     stereoInfoPub,
-                                     stereoIM,
-                                     ph->getParam<bool>("i_enable_lazy_publisher")));
     } else {
         stereoPubIT = image_transport::create_camera_publisher(getROSNode(), "~/" + getName() + "/image_raw");
         stereoQ->addCallback(std::bind(sensor_helpers::cameraPub,
@@ -307,14 +325,6 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
                                        stereoPubIT,
                                        stereoIM,
                                        ph->getParam<bool>("i_enable_lazy_publisher")));
-        confPubIT = image_transport::create_camera_publisher(getROSNode(), "~/" + getName() + "/confidence");
-        confQ->addCallback(std::bind(sensor_helpers::cameraPub,
-                                     std::placeholders::_1,
-                                     std::placeholders::_2,
-                                     *stereoConv,
-                                     confPubIT,
-                                     stereoIM,
-                                     ph->getParam<bool>("i_enable_lazy_publisher")));
     }
 }
 
@@ -382,6 +392,9 @@ void Stereo::setupQueues(std::shared_ptr<dai::Device> device) {
     }
     if(ph->getParam<bool>("i_enable_spatial_nn")) {
         nnNode->setupQueues(device);
+    }
+    if(ph->getParam<bool>("i_publish_confidence")) {
+        setupConfQueue(device);
     }
 }
 void Stereo::closeQueues() {
