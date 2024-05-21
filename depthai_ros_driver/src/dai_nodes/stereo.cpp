@@ -79,7 +79,7 @@ void Stereo::setNames() {
     stereoQName = getName() + "_stereo";
     leftRectQName = getName() + "_left_rect";
     rightRectQName = getName() + "_right_rect";
-    confQName = getName() + "_confidence";
+    confQName = getName() + "_conf";
 }
 
 void Stereo::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
@@ -136,7 +136,7 @@ void Stereo::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
     if(ph->getParam<bool>("i_publish_confidence")) {
         xoutConf = pipeline->create<dai::node::XLinkOut>();
         xoutConf->setStreamName(confQName);
-        stereo->confidenceMap.link(xoutConf->input);
+        stereoCamNode->confidenceMap.link(xoutConf->input);
     }
 }
 
@@ -308,7 +308,7 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
                                        stereoIM,
                                        ph->getParam<bool>("i_enable_lazy_publisher")));
         confPubIT = image_transport::create_camera_publisher(getROSNode(), "~/" + getName() + "/confidence");
-        confQ->addCallback(std::bind(sensor_helpers::splitPub,
+        confQ->addCallback(std::bind(sensor_helpers::cameraPub,
                                      std::placeholders::_1,
                                      std::placeholders::_2,
                                      *stereoConv,
