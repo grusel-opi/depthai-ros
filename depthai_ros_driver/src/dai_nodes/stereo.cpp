@@ -226,6 +226,13 @@ void Stereo::setupRightRectQueue(std::shared_ptr<dai::Device> device) {
 }
 
 void Stereo::setupConfQueue(std::shared_ptr<dai::Device> device) {
+    std::string tfPrefix;
+    if(ph->getParam<bool>("i_align_depth")) {
+        tfPrefix = getTFPrefix(ph->getParam<std::string>("i_socket_name"));
+    } else {
+        tfPrefix = getTFPrefix(utils::getSocketName(rightSensInfo.socket).c_str());
+    }
+
     stereoConv = std::make_unique<dai::ros::ImageConverter>(tfPrefix + "_camera_optical_frame", false, ph->getParam<bool>("i_get_base_device_timestamp"));
     stereoConv->setUpdateRosBaseTimeOnToRosMsg(ph->getParam<bool>("i_update_ros_base_time_on_ros_msg"));
 
