@@ -53,6 +53,9 @@ void StereoParamHandler::updateSocketsFromParams(dai::CameraBoardSocket& left, d
 }
 
 void StereoParamHandler::declareParams(std::shared_ptr<dai::node::StereoDepth> stereo) {
+    
+    declareAndLogParam<bool>("i_publish_confidence", true);
+
     declareAndLogParam<int>("i_max_q_size", 30);
     declareAndLogParam<bool>("i_low_bandwidth", false);
     declareAndLogParam<int>("i_low_bandwidth_quality", 50);
