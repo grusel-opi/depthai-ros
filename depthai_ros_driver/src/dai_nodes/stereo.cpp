@@ -72,6 +72,8 @@ Stereo::Stereo(const std::string& daiNodeName,
         stereoCamNode->depth.link(nnNode->getInput(static_cast<int>(dai_nodes::nn_helpers::link_types::SpatialNNLinkType::inputDepth)));
     }
 
+    RCLCPP_INFO(getROSNode()->get_logger(), "Publishing disparity confidence map is enabled:", ph->getParam<bool>("i_publish_confidence"));
+
     RCLCPP_DEBUG(node->get_logger(), "Node %s created", daiNodeName.c_str());
 }
 Stereo::~Stereo() = default;
