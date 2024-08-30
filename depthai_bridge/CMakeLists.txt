@@ -88,7 +88,7 @@ if($ENV{ROS_DISTRO} STREQUAL "galactic" OR ($ENV{ROS_DISTRO} STREQUAL "rolling" 
   target_compile_definitions(${PROJECT_NAME} PRIVATE IS_GALACTIC)
 endif()
 
-if($ENV{ROS_DISTRO} STREQUAL "humble")
+if($ENV{ROS_DISTRO} STREQUAL "humble" OR $ENV{ROS_DISTRO} STREQUAL "rolling")
   target_compile_definitions(${PROJECT_NAME} PRIVATE IS_HUMBLE)
 endif()
 
@@ -96,7 +96,8 @@ target_link_libraries(${PROJECT_NAME}
                       depthai::core
                       opencv_imgproc
                       opencv_highgui
-                      opencv_calib3d)
+                      opencv_calib3d
+	              ament_index_cpp::ament_index_cpp)
 
 ament_export_targets(depthai_bridgeTargets HAS_LIBRARY_TARGET)
 
